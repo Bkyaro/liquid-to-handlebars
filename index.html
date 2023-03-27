@@ -57,6 +57,16 @@
         /\{%\s*if\s+([\s\S]*?)\s*%\}/g,
         "{{#if (isTruthy $1)}}"
       );
+      // 替换 unless 标签
+      str = str.replace(
+        /\{%\s*unless\s+([\s\S]*?)\s*%\}/g,
+        "{{#unless $1}}"
+      );
+      // 替换 endunless 标签
+      str = str.replace(
+        /\{%\s*endunless\s*%\}/g,
+        "{{/unless}}"
+      );
       // 替换 endif 
       str = str.replace(
         /\{%\s*endif\s*%\}/g,
@@ -67,7 +77,7 @@
       str = str.replace(/{{\s*product \| json\s*}}/gs, '{{{JSONstringify product}}}');
 
       // 增加from表单
-      str.replace(/(<div class="sunzi-form">)/g, `$1\n  <input type="hidden" name="properties[_from]" value='sunzi-' />\n$2`);
+      str = str.replace(/(<div class="sunzi-form">)/g, `$1\n  <input type="hidden" name="properties[_from]" value='sunzi-' />\n`);
 
       // 替换for
       str = str.replace(/{%\s*for\s*([\w.'"-]+)\s*in\s*([\w.'"-]+)\s*%}/g, '{{#each $2 as |$1|}}');
