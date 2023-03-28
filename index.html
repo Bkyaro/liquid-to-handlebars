@@ -37,10 +37,10 @@
 
       // 替换变量
       str = str.replace(
-        /\{%\s*assign\s+([^\s=]+)\s*=\s*(['"]?)(.*?)\2\s*%\}/g,
-        '{{ assign "$1" "$3" }}'
-      );
-
+        /\{%\s*assign\s+([^\s=]+)\s*=\s*(['"]?)(.*?)\2\s*%\}/g, function(match,key,holder,value){
+        return `{{ assign "${key}" ` +  (value.startsWith(`section.`) ? `${value}` : `"${value}"`) + ` }}`
+      });
+ 
       // 替换包含
       str = str.replace(
         /\{%\s*include\s+(['"])(.*?)\1\s*%\}/g,
@@ -86,7 +86,9 @@
       str = str.replace(/{%\s*endfor\s*%}/g, '{{/each}}');
       
       // 替换elsif
-      str = str.replace(/{%\s*elsif ([\w.'"-]+) contains "([\w.'"-]+)" %}/g, '{{ else if (inArray $1 "$2") }}');
+      str = str.replace(/{%\s*elsif\s*([\w.'"-]+)\s*contains\s*(|'|")([\w.'"-]+)(|'|") %}/g, function(match, key, holder, value, holder) {
+        return "{{ else if (inArray " + key + ` ` + value  + `) }}`
+      });
 
       // 替换properties
       str = str.replace(/(|'|")properties\[(.*?)\](|'|")\s*:\s*(.*?)(,|$)/g, function(match, holder, key, holder, value) {
