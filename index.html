@@ -16,6 +16,7 @@
     <button id="generate-btn">&gt转换&gt</button>
 
     <div class="output-group">
+      <button id="copy-btn">复制</button>
       <textarea name="textarea" id="output"></textarea>
       <label class="user-label shopline">Shopline</label>
     </div>
@@ -24,23 +25,35 @@
 
 <script>
   window.onload = function () {
+    async function copyCode() {
+      let text = document.getElementById("output").value;
+      try {
+        await navigator.clipboard.writeText(text).then(()=>{
+          document.getElementById('copy-btn').innerText = '已复制'
+        })
+      } catch (err) {
+        document.getElementById('copy-btn').innerText = '复制失败'
+        console.error("Failed to copy: ", err);
+      }
+    }
+
     function replaceKeywords(str) {
       // 替换注释
-      str = str.replace(
-        /\{%\s*comment\s*%\}/g,
-        "{{! "
-      );
-      str = str.replace(
-        /\{%\s*endcomment\s*%\}/g,
-        " }}"
-      );
+      str = str.replace(/\{%\s*comment\s*%\}/g, "{{! ");
+      str = str.replace(/\{%\s*endcomment\s*%\}/g, " }}");
 
       // 替换变量
       str = str.replace(
-        /\{%\s*assign\s+([^\s=]+)\s*=\s*(['"]?)(.*?)\2\s*%\}/g, function(match,key,holder,value){
-        return `{{ assign "${key}" ` +  (value.startsWith(`section.`) ? `${value}` : `"${value}"`) + ` }}`
-      });
- 
+        /\{%\s*assign\s+([^\s=]+)\s*=\s*(['"]?)(.*?)\2\s*%\}/g,
+        function (match, key, holder, value) {
+          return (
+            `{{ assign "${key}" ` +
+            (value.startsWith(`section.`) ? `${value}` : `"${value}"`) +
+            ` }}`
+          );
+        }
+      );
+
       // 替换包含
       str = str.replace(
         /\{%\s*include\s+(['"])(.*?)\1\s*%\}/g,
@@ -58,52 +71,68 @@
         "{{#if (isTruthy $1)}}"
       );
       // 替换 unless 标签
-      str = str.replace(
-        /\{%\s*unless\s+([\s\S]*?)\s*%\}/g,
-        "{{#unless $1}}"
-      );
+      str = str.replace(/\{%\s*unless\s+([\s\S]*?)\s*%\}/g, "{{#unless $1}}");
       // 替换 endunless 标签
-      str = str.replace(
-        /\{%\s*endunless\s*%\}/g,
-        "{{/unless}}"
-      );
-      // 替换 endif 
-      str = str.replace(
-        /\{%\s*endif\s*%\}/g,
-        "{{/if}}"
-      );
+      str = str.replace(/\{%\s*endunless\s*%\}/g, "{{/unless}}");
+      // 替换 endif
+      str = str.replace(/\{%\s*endif\s*%\}/g, "{{/if}}");
 
       // 替换product
-      str = str.replace(/{{\s*product \| json\s*}}/gs, '{{{JSONstringify product}}}');
+      str = str.replace(
+        /{{\s*product \| json\s*}}/gs,
+        "{{{JSONstringify product}}}"
+      );
 
       // 增加from表单
-      str = str.replace(/(<div class="sunzi-form">)/g, `$1\n  <input type="hidden" name="properties[_from]" value='sunzi-' />\n`);
+      str = str.replace(
+        /(<div class="sunzi-form">)/g,
+        `$1\n  <input type="hidden" name="properties[_from]" value='sunzi-' />\n`
+      );
 
       // 替换for
-      str = str.replace(/{%\s*for\s*([\w.'"-]+)\s*in\s*([\w.'"-]+)\s*%}/g, '{{#each $2 as |$1|}}');
-  
+      str = str.replace(
+        /{%\s*for\s*([\w.'"-]+)\s*in\s*([\w.'"-]+)\s*%}/g,
+        "{{#each $2 as |$1|}}"
+      );
+
       // 替换endfor
-      str = str.replace(/{%\s*endfor\s*%}/g, '{{/each}}');
-      
+      str = str.replace(/{%\s*endfor\s*%}/g, "{{/each}}");
+
       // 替换elsif
-      str = str.replace(/{%\s*elsif\s*([\w.'"-]+)\s*contains\s*(|'|")([\w.'"-]+)(|'|") %}/g, function(match, key, holder, value, holder) {
-        return "{{ else if (inArray " + key + ` ` + value  + `) }}`
-      });
+      str = str.replace(
+        /{%\s*elsif\s*([\w.'"-]+)\s*contains\s*(|'|")([\w.'"-]+)(|'|") %}/g,
+        function (match, key, holder, value, holder) {
+          return "{{ else if (inArray " + key + ` ` + value + `) }}`;
+        }
+      );
 
       // 替换properties
-      str = str.replace(/(|'|")properties\[(.*?)\](|'|")\s*:\s*(.*?)(,|$)/g, function(match, holder, key, holder, value) {
-        return "properties:[{type: 'text', name: \"" + key + "\", value: " + value + "}]" + (match.endsWith(",") ? "," : "");
-      });
-      
+      str = str.replace(
+        /(|'|")properties\[(.*?)\](|'|")\s*:\s*(.*?)(,|$)/g,
+        function (match, holder, key, holder, value) {
+          return (
+            "properties:[{type: 'text', name: \"" +
+            key +
+            '", value: ' +
+            value +
+            "}]" +
+            (match.endsWith(",") ? "," : "")
+          );
+        }
+      );
+
       return str;
     }
 
     document
       .getElementById("generate-btn")
       .addEventListener("click", function () {
-        let inputValue = document.getElementById('input').value
-        let afterTrans = replaceKeywords(inputValue)
-        document.getElementById('output').value = afterTrans
+        let inputValue = document.getElementById("input").value;
+        let afterTrans = replaceKeywords(inputValue);
+        document.getElementById("output").value = afterTrans;
+        document.getElementById('copy-btn').innerText = '复制'
       });
+
+    document.getElementById("copy-btn").addEventListener("click", copyCode);
   };
 </script>
